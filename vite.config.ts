@@ -7,6 +7,10 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   base: './',
   plugins: [react()],
+  build: {
+    // three.js を使うツール（fbx-viewer）は遅延読み込みのチャンクが 1MB 程度になるため、警告の閾値を上げる
+    chunkSizeWarningLimit: 1500,
+  },
   test: {
     globals: true,
     environment: 'jsdom',

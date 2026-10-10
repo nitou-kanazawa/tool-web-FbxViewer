@@ -13,6 +13,8 @@ export interface ToolMeta {
   description: string;
   /** 任意。一覧での絞り込み・分類用。 */
   tags?: string[];
+  /** 任意。'wide' にすると、ツールページの最大幅の制限を外す（3D ビューアなど）。既定は 'default'。 */
+  layout?: 'default' | 'wide';
 }
 
 /** レジストリに登録されるツール1件。 */

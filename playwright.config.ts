@@ -22,9 +22,17 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         // 通常は Playwright が管理するブラウザを使う。
         // ブラウザを別途インストール済みの環境では PW_EXECUTABLE_PATH で上書きできる。
-        launchOptions: process.env.PW_EXECUTABLE_PATH
-          ? { executablePath: process.env.PW_EXECUTABLE_PATH }
-          : {},
+        launchOptions: {
+          // GPU のないヘッドレス環境（CI など）でも WebGL を描けるよう、ソフトウェア描画を使う
+          args: [
+            '--use-angle=swiftshader',
+            '--enable-unsafe-swiftshader',
+            '--ignore-gpu-blocklist',
+          ],
+          ...(process.env.PW_EXECUTABLE_PATH
+            ? { executablePath: process.env.PW_EXECUTABLE_PATH }
+            : {}),
+        },
       },
     },
   ],

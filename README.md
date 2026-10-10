@@ -32,20 +32,28 @@ npm run screenshots  # 全ツールのスクショを screenshots/ に出力
 
 サンプル: [`src/tools/word-counter/`](src/tools/word-counter/)
 
+## 収録ツール
+
+| ツール           | 内容                                                                                               | ドキュメント                                                                    |
+| ---------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| 文字数カウンター | テキストの文字数・単語数・行数を数える（サンプル）                                                 | ―                                                                               |
+| FBX ビューア     | FBX をドロップして、メッシュ・テクスチャ・UV・リグ・アニメを確認し、ゲーム用アセットとして検品する | [要件定義](docs/fbx-viewer/requirements.md) / [設計](docs/fbx-viewer/design.md) |
+
 ## スクリプト一覧
 
-| コマンド              | 内容                                                  |
-| --------------------- | ----------------------------------------------------- |
-| `npm run dev`         | 開発サーバ起動                                        |
-| `npm run build`       | 本番ビルド                                            |
-| `npm run preview`     | ビルド結果をローカルでプレビュー                      |
-| `npm run typecheck`   | 型チェック                                            |
-| `npm run lint`        | ESLint                                                |
-| `npm run format`      | Prettier で整形                                       |
-| `npm run test`        | Vitest（ユニットテスト）                              |
-| `npm run e2e`         | Playwright（E2E）                                     |
-| `npm run screenshots` | 全ツールのスクリーンショット撮影                      |
-| `npm run check`       | typecheck + lint + format:check + test + build を一括 |
+| コマンド              | 内容                                                   |
+| --------------------- | ------------------------------------------------------ |
+| `npm run dev`         | 開発サーバ起動                                         |
+| `npm run build`       | 本番ビルド                                             |
+| `npm run samples`     | FBX ビューアのサンプル FBX を `public/samples/` に生成 |
+| `npm run preview`     | ビルド結果をローカルでプレビュー                       |
+| `npm run typecheck`   | 型チェック                                             |
+| `npm run lint`        | ESLint                                                 |
+| `npm run format`      | Prettier で整形                                        |
+| `npm run test`        | Vitest（ユニットテスト）                               |
+| `npm run e2e`         | Playwright（E2E）                                      |
+| `npm run screenshots` | 全ツールのスクリーンショット撮影                       |
+| `npm run check`       | typecheck + lint + format:check + test + build を一括  |
 
 ## GitHub Pages / PR プレビューのセットアップ
 
