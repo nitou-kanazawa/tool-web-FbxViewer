@@ -43,6 +43,10 @@ export default function MyTool() {
 
 これだけで、トップページの一覧とルーティングに自動で追加される（`registry.ts` の編集は不要）。
 
+画面を横いっぱいに使いたいツール（3D ビューアなど）は、`meta` に `layout: 'wide'` を指定すると、ページの最大幅の制限が外れる。
+
+重いライブラリ（three.js など）を使うツールは、`tool.tsx` では値として import せず、本体を `React.lazy(() => import('./App'))` で遅延読み込みする。`registry.ts` は全ツールの `tool.tsx` を即時に読み込むため、ここで重いライブラリを import するとトップページまで重くなる（例: `src/tools/fbx-viewer/tool.tsx`）。
+
 ## 3. ロジックを分離してテストする
 
 計算・変換ロジックは UI から切り離す。

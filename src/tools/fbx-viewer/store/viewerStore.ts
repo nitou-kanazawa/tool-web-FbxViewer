@@ -207,6 +207,8 @@ export const useViewerStore = create<ViewerState>()(
               notices,
               textures: undefined,
               selectedBoneUuid: null,
+              // ボーンの選択はモデルごとなので、ウェイト表示は通常表示に戻す
+              shading: prev.shading === 'boneWeight' ? 'standard' : prev.shading,
               modelVersion: prev.modelVersion + 1,
               selectedClip: keepClip,
               currentTime: 0,
@@ -277,8 +279,8 @@ export const useViewerStore = create<ViewerState>()(
             library: [...get().library, ...added],
             animationError: errors.length ? errors.join(' / ') : null,
           });
-          // 何も選んでいなければ、追加した最初のクリップを選ぶ
-          if (added.length > 0 && !get().selectedClip) {
+          // 追加したアニメをすぐ確認できるよう、最初のクリップを選んで再生する
+          if (added.length > 0) {
             get().selectClip({ assetId: added[0].id, clipIndex: 0 });
           }
         },
