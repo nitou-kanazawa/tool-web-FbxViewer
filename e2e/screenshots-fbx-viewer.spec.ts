@@ -34,4 +34,11 @@ test('FBX ビューア: モデルとアニメを読み込んだ状態', async ({
   await expect(page.getByTestId('file-name')).toHaveText('cube.fbx');
   await page.getByTestId('wireframe-select').selectOption('overlay');
   await page.screenshot({ path: 'screenshots/tool-fbx-viewer-inspection.png', fullPage: true });
+
+  // ダークモード
+  await page
+    .getByRole('group', { name: '表示テーマ' })
+    .getByRole('button', { name: /ダーク/ })
+    .click();
+  await page.screenshot({ path: 'screenshots/tool-fbx-viewer-dark.png', fullPage: true });
 });

@@ -1,13 +1,19 @@
 import { Link } from 'react-router-dom';
 import { tools } from '../tools/registry';
+import { ThemeToggle } from './ThemeToggle';
 
 export function HomePage() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <div className="mx-auto max-w-3xl px-6 py-12">
-        <header className="mb-10">
-          <h1 className="text-3xl font-bold tracking-tight">Web MiniTools</h1>
-          <p className="mt-2 text-slate-600 dark:text-slate-400">ブラウザで動く小さなツール集。</p>
+        <header className="mb-10 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Web MiniTools</h1>
+            <p className="mt-2 text-slate-600 dark:text-slate-400">
+              ブラウザで動く小さなツール集。
+            </p>
+          </div>
+          <ThemeToggle />
         </header>
 
         {tools.length === 0 ? (
