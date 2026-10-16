@@ -17,11 +17,11 @@ describe('loadFbxModel（サンプル FBX との結合テスト）', () => {
     const { stats } = analyzeModel(model);
     expect(stats.totals).toMatchObject({
       meshCount: 1,
-      triangleCount: 15 * 12,
+      triangleCount: 6828,
       boneCount: 16,
       clipCount: 1,
     });
-    expect(stats.bounds!.size[1]).toBeCloseTo(1.78);
+    expect(stats.bounds!.size[1]).toBeCloseTo(1.76);
     expect(stats.meshes[0]).toMatchObject({
       isSkinned: true,
       zeroWeightVertexCount: 0,
@@ -30,7 +30,7 @@ describe('loadFbxModel（サンプル FBX との結合テスト）', () => {
     model.dispose();
   });
 
-  it('キューブ: 外部テクスチャの欠落と、回転・原点の警告', async () => {
+  it('木箱: 外部テクスチャの欠落と、回転・原点の警告', async () => {
     const model = await loadFbxModel(sampleFile('cube.fbx'));
     expect(model.unitScaleFactor).toBe(100);
     expect(model.textureSources.map((t) => [t.fileName, t.status])).toEqual([

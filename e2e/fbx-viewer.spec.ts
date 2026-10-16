@@ -33,15 +33,15 @@ test('FBX を読み込むと、インスペクターに統計、問題パネル�
   await openModel(page, 'sample-character.fbx');
 
   await expect(page.getByTestId('file-name')).toHaveText('sample-character.fbx');
-  await expect(page.getByTestId('stat-triangles')).toContainText('180');
+  await expect(page.getByTestId('stat-triangles')).toContainText('6,828');
   await expect(page.getByTestId('stat-bones')).toContainText('16');
-  await expect(page.getByTestId('model-size')).toContainText('1.780 m');
+  await expect(page.getByTestId('model-size')).toContainText('1.758 m');
   await expect(page.getByTestId('inspection-C-01')).toHaveAttribute('data-level', 'ok');
   await expect(page.getByTestId('inspection-C-10')).toHaveAttribute('data-level', 'ok');
   await expect(page.getByTestId('status-problems')).toHaveText(/0\s*0/);
   await expect(page.getByTestId('status-file')).toHaveText('sample-character.fbx');
   // シーンの階層がエクスプローラーに出る
-  await expect(page.getByTestId('scene-tree').getByText('Body')).toBeVisible();
+  await expect(page.getByTestId('scene-tree').getByText('Adventurer')).toBeVisible();
 });
 
 test('外部テクスチャは一緒に渡した画像で解決される', async ({ page }) => {
@@ -117,7 +117,7 @@ test('テクスチャ・UV・リグのビューから詳細を開ける', async 
   await page.getByTestId('uv-mesh-item').dblclick();
   await expect(page.getByTestId('editor-tab-uv')).toBeVisible();
   await expect(page.getByTestId('uv-canvas')).toBeVisible();
-  await expect(page.getByTestId('uv-stats')).toContainText('三角形: 180');
+  await expect(page.getByTestId('uv-stats')).toContainText('三角形: 6,828');
 
   await showView(page, 'リグ');
   await expect(page.getByTestId('humanoid-check')).toContainText('15/15');

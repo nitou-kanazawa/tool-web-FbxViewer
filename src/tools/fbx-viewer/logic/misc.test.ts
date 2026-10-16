@@ -1,6 +1,6 @@
 import { Bone, BufferGeometry, Float32BufferAttribute, Group, Uint16BufferAttribute } from 'three';
 import { boneWeightsOf, buildBoneTree, flattenBoneTree, weightToColor } from './boneWeights';
-import { computeFitCamera } from './cameraFit';
+import { computeFitCamera, viewSpace } from './cameraFit';
 import { checkHumanoid } from './humanoid';
 import { describeUnit, fileUnitsToMeters } from './units';
 
@@ -15,18 +15,56 @@ describe('units', () => {
 });
 
 describe('computeFitCamera', () => {
+  const corners = (min: number[], max: number[]) =>
+    [min[0], max[0]].flatMap((x) =>
+      [min[1], max[1]].flatMap((y) =>
+        [min[2], max[2]].map((z) => [x, y, z] as [number, number, number]),
+      ),
+    );
+
+  /** すべての角が画角（縦 fov・横 fov×aspect）に入っているか。 */
+  const allVisible = (
+    fit: ReturnType<typeof computeFitCamera>,
+    pts: [number, number, number][],
+    fov: number,
+    aspect: number,
+  ) => {
+    const tanV = Math.tan((fov * Math.PI) / 360);
+    return pts.every((p) => {
+      const [x, y, depth] = viewSpace(fit, p);
+      return (
+        depth > 0 &&
+        Math.abs(y) <= depth * tanV + 1e-9 &&
+        Math.abs(x) <= depth * tanV * aspect + 1e-9
+      );
+    });
+  };
+
   it('バウンディングボックスの中心を見て、全体が収まる距離に置く', () => {
-    const fit = computeFitCamera({ min: [-0.5, 0, -0.5], max: [0.5, 2, 0.5] }, 45, 1);
-    expect(fit.target).toEqual([0, 1, 0]);
-    const d = Math.hypot(fit.position[0], fit.position[1] - 1, fit.position[2]);
-    const radius = Math.hypot(1, 2, 1) / 2;
-    expect(d).toBeGreaterThan(radius / Math.sin((22.5 * Math.PI) / 180));
+    const box = {
+      min: [-0.8, 0, -0.15] as [number, number, number],
+      max: [0.8, 1.8, 0.15] as [number, number, number],
+    };
+    const fit = computeFitCamera(box, 45, 1.5);
+    expect(fit.target).toEqual([0, 0.9, 0]);
     expect(fit.position[2]).toBeGreaterThan(0); // 正面（+Z）側
+    expect(allVisible(fit, corners(box.min, box.max), 45, 1.5)).toBe(true);
+    // 余白を除けば、ぎりぎりまで寄っている（外接球で測るより近い）
+    const sphere = Math.hypot(1.6, 1.8, 0.3) / 2 / Math.sin((22.5 * Math.PI) / 180);
+    expect(Math.hypot(fit.position[0], fit.position[1] - 0.9, fit.position[2])).toBeLessThan(
+      sphere,
+    );
   });
+
   it('縦長の画面では横の画角で決まる', () => {
-    const wide = computeFitCamera({ min: [-1, -1, -1], max: [1, 1, 1] }, 45, 2);
-    const tall = computeFitCamera({ min: [-1, -1, -1], max: [1, 1, 1] }, 45, 0.5);
+    const box = {
+      min: [-1, -1, -1] as [number, number, number],
+      max: [1, 1, 1] as [number, number, number],
+    };
+    const wide = computeFitCamera(box, 45, 2);
+    const tall = computeFitCamera(box, 45, 0.5);
     expect(Math.hypot(...tall.position)).toBeGreaterThan(Math.hypot(...wide.position));
+    expect(allVisible(tall, corners(box.min, box.max), 45, 0.5)).toBe(true);
   });
 });
 

@@ -1,7 +1,16 @@
 import { Grid } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
-import { Box3Helper, Box3, SkeletonHelper, Vector3, type Mesh, type Object3D } from 'three';
+import {
+  Box3Helper,
+  Box3,
+  CanvasTexture,
+  SkeletonHelper,
+  SRGBColorSpace,
+  Vector3,
+  type Mesh,
+  type Object3D,
+} from 'three';
 import { useWorkbenchStore } from '../store/workbenchStore';
 import { useViewerStore } from '../store/viewerStore';
 
@@ -24,6 +33,7 @@ export function Helpers() {
           sectionColor={light ? '#9a9a9a' : '#5e5e5e'}
         />
       )}
+      {model && <GroundShadow />}
       {model && showSkeleton && <Skeleton root={model.root} />}
       {model && <SelectedBone root={model.root} />}
       {model && <SelectionBox root={model.root} />}
@@ -117,4 +127,58 @@ function SelectionBox({ root }: { root: Object3D }) {
   });
 
   return null;
+}
+
+/**
+ * 足元のやわらかい影（接地感を出す）。中心が濃く外に向かって薄くなる円を地面に置く。
+ * 毎フレーム影を描き直す方式より軽く、どの環境でも同じように見える。
+ */
+function GroundShadow() {
+  const bounds = useViewerStore((s) => s.analysis?.stats.bounds ?? null);
+  const background = useViewerStore((s) => s.background);
+  const texture = useMemo(() => createShadowTexture(), []);
+  useEffect(() => () => texture.dispose(), [texture]);
+  if (!bounds) return null;
+  // 横に広がった T ポーズの腕ではなく、足元の広さに合わせる
+  const width =
+    Math.max(Math.min(bounds.size[0], bounds.size[1] * 0.45), bounds.size[2], 0.05) * 1.6;
+  const depth = Math.max(bounds.size[2], width * 0.6) * 1.6;
+  return (
+    <mesh
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[
+        (bounds.min[0] + bounds.max[0]) / 2,
+        bounds.min[1] + 0.001,
+        (bounds.min[2] + bounds.max[2]) / 2,
+      ]}
+      scale={[width, depth, 1]}
+      renderOrder={-1}
+    >
+      <planeGeometry />
+      <meshBasicMaterial
+        map={texture}
+        transparent
+        depthWrite={false}
+        opacity={background === 'light' ? 0.35 : 0.7}
+        color="#000000"
+      />
+    </mesh>
+  );
+}
+
+function createShadowTexture(): CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.45, 'rgba(255,255,255,0.55)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 128, 128);
+  }
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  return texture;
 }

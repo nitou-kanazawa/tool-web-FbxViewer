@@ -10,31 +10,40 @@ export interface CameraFit {
 /** カメラを置く方向（正面のやや右上。モデルは +Z を向いている想定）。 */
 const VIEW_DIR: Vec3 = normalize([0.55, 0.35, 1]);
 
-/** バウンディングボックス全体が画面に収まるカメラの位置を求める（F-1-11）。 */
+/** カメラの右・上方向（VIEW_DIR に直交する）。 */
+const RIGHT: Vec3 = normalize(cross([0, 1, 0], VIEW_DIR));
+const UP: Vec3 = cross(VIEW_DIR, RIGHT);
+
+/**
+ * バウンディングボックス全体が画面に収まるカメラの位置を求める（F-1-11）。
+ * 8 つの角をカメラの向きに投影し、どの角も画角に入るぎりぎりの距離にする
+ * （外接球で測るより無駄な余白が少ない）。margin は画面の端に残す余白の割合。
+ */
 export function computeFitCamera(
   bounds: { min: Vec3; max: Vec3 } | null,
   fovDeg: number,
   aspect: number,
-  margin = 1.15,
+  margin = 0.08,
 ): CameraFit {
   if (!bounds) return { position: [2, 1.5, 3], target: [0, 0.8, 0], near: 0.01, far: 100 };
-  const target: Vec3 = [
-    (bounds.min[0] + bounds.max[0]) / 2,
-    (bounds.min[1] + bounds.max[1]) / 2,
-    (bounds.min[2] + bounds.max[2]) / 2,
-  ];
-  const radius = Math.max(
-    Math.hypot(
-      bounds.max[0] - bounds.min[0],
-      bounds.max[1] - bounds.min[1],
-      bounds.max[2] - bounds.min[2],
-    ) / 2,
-    1e-3,
-  );
-  const vFov = (fovDeg * Math.PI) / 180;
-  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * Math.max(aspect, 1e-3));
-  const fov = Math.min(vFov, hFov);
-  const distance = (radius / Math.sin(fov / 2)) * margin;
+  const { min, max } = bounds;
+  const target: Vec3 = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2];
+  const tanV = Math.tan((fovDeg * Math.PI) / 360) * (1 - margin * 2);
+  const tanH = tanV * Math.max(aspect, 1e-3);
+  let distance = 1e-3;
+  for (const x of [min[0], max[0]]) {
+    for (const y of [min[1], max[1]]) {
+      for (const z of [min[2], max[2]]) {
+        const c: Vec3 = [x - target[0], y - target[1], z - target[2]];
+        const toward = dot(c, VIEW_DIR);
+        distance = Math.max(
+          distance,
+          toward + Math.abs(dot(c, RIGHT)) / tanH,
+          toward + Math.abs(dot(c, UP)) / tanV,
+        );
+      }
+    }
+  }
   return {
     position: [
       target[0] + VIEW_DIR[0] * distance,
@@ -45,6 +54,20 @@ export function computeFitCamera(
     near: Math.max(distance / 1000, 1e-4),
     far: distance * 100,
   };
+}
+
+/** カメラから見た点の位置（右・上・奥行き）。テストで「画角に入っているか」を確かめるのに使う。 */
+export function viewSpace(fit: CameraFit, p: Vec3): Vec3 {
+  const rel: Vec3 = [p[0] - fit.position[0], p[1] - fit.position[1], p[2] - fit.position[2]];
+  return [dot(rel, RIGHT), dot(rel, UP), -dot(rel, VIEW_DIR)];
+}
+
+function dot(a: Vec3, b: Vec3): number {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+function cross(a: Vec3, b: Vec3): Vec3 {
+  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 }
 
 function normalize(v: Vec3): Vec3 {

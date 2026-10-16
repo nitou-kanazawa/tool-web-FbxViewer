@@ -1,10 +1,14 @@
 /** public/samples/ にある自作のサンプル（scripts/fixtures/generate-samples.ts で生成）。 */
 export const MODEL_SAMPLES = [
-  { id: 'character', label: 'キャラクター（リグ・アニメ付き）', files: ['sample-character.fbx'] },
-  { id: 'cube', label: 'キューブ（検品で警告が出る例）', files: ['cube.fbx'] },
+  {
+    id: 'character',
+    label: '冒険者キャラクター（リグ・アニメ付き）',
+    files: ['sample-character.fbx'],
+  },
+  { id: 'cube', label: '木箱（検品で警告が出る例）', files: ['cube.fbx'] },
   {
     id: 'cube-texture',
-    label: 'キューブ + テクスチャ',
+    label: '木箱 + テクスチャ',
     files: ['cube.fbx', 'cube_basecolor.png'],
   },
 ] as const;
