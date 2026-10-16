@@ -22,7 +22,7 @@ test('テーマを切り替えると保存され、ツールページでも引�
   );
   expect(await isDark(page)).toBe(true);
 
-  await page.goto('/#/tools/fbx-viewer');
+  await page.goto('/#/tools/word-counter');
   await page.reload();
   expect(await isDark(page)).toBe(true);
 

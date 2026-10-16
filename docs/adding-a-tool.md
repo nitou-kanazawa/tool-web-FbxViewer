@@ -43,7 +43,9 @@ export default function MyTool() {
 
 これだけで、トップページの一覧とルーティングに自動で追加される（`registry.ts` の編集は不要）。
 
-画面を横いっぱいに使いたいツール（3D ビューアなど）は、`meta` に `layout: 'wide'` を指定すると、ページの最大幅の制限が外れる。
+画面を横いっぱいに使いたいツールは、`meta` に `layout: 'wide'` を指定すると、ページの最大幅の制限が外れる。アプリのように画面全体を使うツール（例: FBX ビューア）は `layout: 'fullscreen'` にすると、見出しやツール一覧へのリンクを出さずに画面いっぱいを渡す（リンクはツール側で用意する）。
+
+遅延読み込み中の表示には `aria-busy="true"` を付ける。`npm run screenshots` はそれが消えるまで待ってから撮影する。
 
 重いライブラリ（three.js など）を使うツールは、`tool.tsx` では値として import せず、本体を `React.lazy(() => import('./App'))` で遅延読み込みする。`registry.ts` は全ツールの `tool.tsx` を即時に読み込むため、ここで重いライブラリを import するとトップページまで重くなる（例: `src/tools/fbx-viewer/tool.tsx`）。
 

@@ -27,6 +27,8 @@ test('全ツールのスクリーンショットを撮影', async ({ page }) => 
     if (!slug) continue;
     await page.goto(`/#/tools/${slug}`);
     await page.waitForLoadState('networkidle');
+    // 遅延読み込み中の表示（aria-busy="true"）が消えるまで待つ
+    await page.locator('[aria-busy="true"]').waitFor({ state: 'detached' });
     await page.screenshot({ path: `screenshots/tool-${slug}.png`, fullPage: true });
   }
 });

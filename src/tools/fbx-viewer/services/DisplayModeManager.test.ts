@@ -1,5 +1,9 @@
 import { BoxGeometry, Group, Mesh, MeshPhongMaterial } from 'three';
-import { DisplayModeManager } from './DisplayModeManager';
+import {
+  DisplayModeManager,
+  hasOriginalVertexColors,
+  originalMaterialsOf,
+} from './DisplayModeManager';
 
 function scene() {
   const root = new Group();
@@ -45,5 +49,15 @@ describe('DisplayModeManager', () => {
     expect(mesh.geometry.hasAttribute('color')).toBe(true);
     m.restore();
     expect(mesh.geometry.hasAttribute('color')).toBe(false);
+  });
+
+  it('差し替え中も、元のマテリアルと頂点カラーの有無を読める', () => {
+    const { root, mesh, material } = scene();
+    const m = new DisplayModeManager();
+    m.apply(root, { shading: 'boneWeight', wireframe: 'off', boneUuid: null });
+    expect(originalMaterialsOf(mesh)).toEqual([material]);
+    expect(hasOriginalVertexColors(mesh)).toBe(false);
+    m.restore();
+    expect(originalMaterialsOf(mesh)).toEqual([material]);
   });
 });

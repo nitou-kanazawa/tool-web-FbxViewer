@@ -1,7 +1,8 @@
 import { Grid } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
-import { SkeletonHelper, Vector3, type Mesh, type Object3D } from 'three';
+import { Box3Helper, Box3, SkeletonHelper, Vector3, type Mesh, type Object3D } from 'three';
+import { useWorkbenchStore } from '../store/workbenchStore';
 import { useViewerStore } from '../store/viewerStore';
 
 /** グリッド（1 マス 10cm、太線 1m）・スケルトン・選択中のボーンの表示。 */
@@ -19,12 +20,13 @@ export function Helpers() {
           cellSize={0.1}
           sectionSize={1}
           fadeDistance={40}
-          cellColor={light ? '#cbd5e1' : '#334155'}
-          sectionColor={light ? '#94a3b8' : '#64748b'}
+          cellColor={light ? '#c8c8c8' : '#3a3a3a'}
+          sectionColor={light ? '#9a9a9a' : '#5e5e5e'}
         />
       )}
       {model && showSkeleton && <Skeleton root={model.root} />}
       {model && <SelectedBone root={model.root} />}
+      {model && <SelectionBox root={model.root} />}
     </>
   );
 }
@@ -75,4 +77,44 @@ function SelectedBone({ root }: { root: Object3D }) {
       <meshBasicMaterial color="#facc15" depthTest={false} transparent />
     </mesh>
   );
+}
+
+/** 選んだメッシュやグループを枠で囲む（VS Code の選択色）。再生中は枠も動きに合わせる。 */
+function SelectionBox({ root }: { root: Object3D }) {
+  const selection = useWorkbenchStore((s) => s.selection);
+  const playing = useViewerStore((s) => s.playing);
+  const scene = useThree((s) => s.scene);
+  const invalidate = useThree((s) => s.invalidate);
+  const target = useMemo(() => {
+    if (selection.kind !== 'node') return undefined;
+    const obj = root.getObjectByProperty('uuid', selection.uuid);
+    return obj && !(obj as { isBone?: boolean }).isBone ? obj : undefined;
+  }, [root, selection]);
+  const box = useMemo(() => new Box3(), []);
+  const helper = useMemo(() => {
+    const h = new Box3Helper(box, 0x007fd4);
+    (h.material as { depthTest: boolean }).depthTest = false;
+    h.renderOrder = 12;
+    return h;
+  }, [box]);
+
+  useEffect(() => {
+    if (!target) return;
+    box.setFromObject(target);
+    scene.add(helper);
+    invalidate();
+    return () => {
+      scene.remove(helper);
+      invalidate();
+    };
+  }, [target, box, helper, scene, invalidate]);
+
+  useEffect(() => () => helper.dispose(), [helper]);
+
+  useFrame(() => {
+    // スキンメッシュの枠の計算は重いので、再生中だけ毎フレーム更新する
+    if (target && playing) box.setFromObject(target);
+  });
+
+  return null;
 }

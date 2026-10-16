@@ -15,6 +15,26 @@ import {
 } from 'three';
 import { boneWeightsOf, weightsToColors } from '../logic/boneWeights';
 
+const ORIGINAL_KEY = '__displayModeOriginal';
+
+interface OriginalState {
+  material: Material | Material[];
+  hadColor: boolean;
+}
+
+/** 表示モードで差し替える前の、元のマテリアル（差し替えていなければ今のマテリアル）。 */
+export function originalMaterialsOf(mesh: Mesh): Material[] {
+  const original = mesh.userData[ORIGINAL_KEY] as OriginalState | undefined;
+  const m = original ? original.material : mesh.material;
+  return (Array.isArray(m) ? m : [m]).filter(Boolean);
+}
+
+/** 元のジオメトリに頂点カラーがあったか（ウェイト表示で一時的に付けた色は除く）。 */
+export function hasOriginalVertexColors(mesh: Mesh): boolean {
+  const original = mesh.userData[ORIGINAL_KEY] as OriginalState | undefined;
+  return original ? original.hadColor : mesh.geometry.hasAttribute('color');
+}
+
 /** 面の塗り方（F-1-13, F-3-04, F-4-04, F-5-03）。 */
 export type ShadingMode =
   'standard' | 'baseColor' | 'normalMap' | 'white' | 'normals' | 'checker' | 'boneWeight';
@@ -78,6 +98,11 @@ export class DisplayModeManager {
         color: mesh.geometry.getAttribute('color') as BufferAttribute | undefined,
         hadColor: mesh.geometry.hasAttribute('color'),
       });
+      // 画面（インスペクターや UV エディタ）が元のマテリアルを読めるように残しておく
+      mesh.userData[ORIGINAL_KEY] = {
+        material: mesh.material,
+        hadColor: mesh.geometry.hasAttribute('color'),
+      } satisfies OriginalState;
       if (settings.shading === 'boneWeight') this.applyWeightColors(mesh, settings.boneUuid);
       const make = (m: Material) => {
         const base = factory ? factory(m, mesh) : m.clone();
@@ -94,6 +119,7 @@ export class DisplayModeManager {
   restore() {
     for (const [mesh, s] of this.saved) {
       mesh.material = s.material;
+      delete mesh.userData[ORIGINAL_KEY];
       if (s.hadColor && s.color) mesh.geometry.setAttribute('color', s.color);
       else if (!s.hadColor) mesh.geometry.deleteAttribute('color');
     }
