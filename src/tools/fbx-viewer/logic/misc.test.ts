@@ -120,3 +120,23 @@ describe('checkHumanoid', () => {
     expect(checkHumanoid(['Hips']).filter((c) => c.bone === null)).toHaveLength(14);
   });
 });
+
+describe('lighting', () => {
+  it('ライトの向きと仰角から位置を求める', async () => {
+    const { keyLightPosition } = await import('./lighting');
+    const front = keyLightPosition(0, 0, 10);
+    expect(front[0]).toBeCloseTo(0);
+    expect(front[2]).toBeCloseTo(10);
+    const right = keyLightPosition(90, 0, 10);
+    expect(right[0]).toBeCloseTo(10);
+    const top = keyLightPosition(0, 90, 10);
+    expect(top[1]).toBeCloseTo(10);
+  });
+
+  it('プリセットの判定', async () => {
+    const { isLightingPreset, LIGHTING_ORDER, LIGHTING } = await import('./lighting');
+    expect(LIGHTING_ORDER.every(isLightingPreset)).toBe(true);
+    expect(isLightingPreset('disco')).toBe(false);
+    expect(Object.keys(LIGHTING)).toHaveLength(LIGHTING_ORDER.length);
+  });
+});

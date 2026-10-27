@@ -1,12 +1,18 @@
 import { Bone, Grid2x2, Loader2, Scan, Axis3d } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import type { Object3D } from 'three';
 import {
-  SHADING_LABELS,
+  DEFAULT_LIGHT_ANGLE,
+  LIGHTING,
+  LIGHTING_ORDER,
+  type LightingPreset,
+} from '../../../logic/lighting';
+import {
   WIREFRAME_LABELS,
   type ShadingMode,
   type WireframeMode,
 } from '../../../services/DisplayModeManager';
+import { shadingOptions } from '../shadingOptions';
 import { useViewerStore } from '../../../store/viewerStore';
 import { useWorkbenchStore } from '../../../store/workbenchStore';
 import { ViewerCanvas } from '../../../viewer/ViewerCanvas';
@@ -16,11 +22,15 @@ import { openFileDialog } from '../fileDialogs';
 import { IconButton, KeyHint, VsSelect } from '../primitives';
 import { vsc } from '../styles';
 import { Crumbs, EditorToolbar } from './EditorToolbar';
+import { useElementSize } from './useElementSize';
 
 /** 3D ビュー。タブを切り替えても描画の状態を保つため、常にマウントしておく。 */
 export function SceneEditor() {
   const s = useViewerStore();
   const selection = useWorkbenchStore((w) => w.selection);
+  const rootRef = useRef<HTMLDivElement>(null);
+  // ツールバーの操作が多いので、狭いときはパンくずを出さない（ファイル名はタイトルバーにある）
+  const narrow = useElementSize(rootRef).width < 1000;
 
   const crumbs = useMemo(() => {
     if (!s.model) return ['3D ビュー'];
@@ -33,17 +43,28 @@ export function SceneEditor() {
   }, [s.model, selection]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <EditorToolbar breadcrumbs={<Crumbs items={crumbs} />}>
+    <div ref={rootRef} className="flex h-full min-h-0 flex-col">
+      <EditorToolbar breadcrumbs={narrow ? null : <Crumbs items={crumbs} />}>
         <VsSelect
-          label="表示"
+          label="シェーディング"
           value={s.shading}
           onChange={(v) =>
             v === 'boneWeight' ? toggleWeights() : s.setView({ shading: v as ShadingMode })
           }
-          options={Object.entries(SHADING_LABELS).map(([value, label]) => ({ value, label }))}
+          options={shadingOptions()}
           testId="shading-select"
         />
+        <VsSelect
+          label="ライティング"
+          value={s.lighting}
+          onChange={(v) => s.setView({ lighting: v as LightingPreset })}
+          options={LIGHTING_ORDER.map((id) => ({
+            value: id,
+            label: `ライト: ${LIGHTING[id].label}`,
+          }))}
+          testId="lighting-select"
+        />
+        <LightAngle />
         <VsSelect
           label="ワイヤーフレーム"
           value={s.wireframe}
@@ -161,4 +182,35 @@ function pathOf(obj: Object3D, root: Object3D): string[] {
     cur = cur.parent;
   }
   return names.length > 4 ? ['…', ...names.slice(-3)] : names;
+}
+
+/** ライトの向き（水平方向に回す）。法線マップや陰影の確認に使う。 */
+function LightAngle() {
+  const angle = useViewerStore((s) => s.lightAngle);
+  const lighting = useViewerStore((s) => s.lighting);
+  const setView = useViewerStore((s) => s.setView);
+  const disabled = LIGHTING[lighting].key.intensity === 0;
+  return (
+    <label
+      className={`inline-flex items-center gap-1 text-[12px] ${vsc.text}`}
+      title="ライトの向き（ダブルクリックで元に戻す）"
+    >
+      <span aria-hidden className={disabled ? 'opacity-40' : ''}>
+        ☀
+      </span>
+      <input
+        type="range"
+        aria-label="ライトの向き"
+        min={-180}
+        max={180}
+        step={5}
+        value={angle}
+        disabled={disabled}
+        onChange={(e) => setView({ lightAngle: Number(e.target.value) })}
+        onDoubleClick={() => setView({ lightAngle: DEFAULT_LIGHT_ANGLE })}
+        className="h-1 w-20 accent-[#007acc] disabled:opacity-40"
+        data-testid="light-angle"
+      />
+    </label>
+  );
 }

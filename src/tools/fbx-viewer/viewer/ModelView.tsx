@@ -18,10 +18,14 @@ export function ModelView({ model }: { model: LoadedModel }) {
 
   useEffect(() => () => manager.dispose(), [manager]);
 
+  // 輪郭線の太さはモデルの高さに合わせる（1.7m のキャラで 9mm ほど）
+  const height = useViewerStore((s) => s.analysis?.stats.bounds?.size[1] ?? 1);
+  const outlineMeters = Math.min(0.06, Math.max(0.002, height * 0.005));
+
   useEffect(() => {
-    manager.apply(model.root, { shading, wireframe, boneUuid });
+    manager.apply(model.root, { shading, wireframe, boneUuid, outlineMeters });
     invalidate();
-  }, [manager, model, shading, wireframe, boneUuid, invalidate]);
+  }, [manager, model, shading, wireframe, boneUuid, outlineMeters, invalidate]);
 
   // テクスチャの非同期読み込みが終わったら描き直す
   useEffect(() => {

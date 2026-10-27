@@ -154,3 +154,28 @@ test('キーボードとコマンドパレットで操作できる', async ({ pa
   await page.keyboard.press('W');
   await expect(page.getByTestId('wireframe-select')).toHaveValue('only');
 });
+
+test('シェーディングとライティングを切り替えられ、ライティングは次回も引き継がれる', async ({
+  page,
+}) => {
+  await openViewer(page);
+  await openModel(page, 'sample-character.fbx');
+  await expect(page.getByTestId('file-name')).toHaveText('sample-character.fbx');
+
+  for (const mode of ['pbr', 'toon', 'toonOutline', 'matcap', 'baseColor', 'standard']) {
+    await page.getByTestId('shading-select').selectOption(mode);
+    await expect(page.getByTestId('shading-select')).toHaveValue(mode);
+  }
+
+  await page.getByTestId('lighting-select').selectOption('sunset');
+  await page.getByTestId('light-angle').fill('-90');
+  await expect(page.getByTestId('light-angle')).toHaveValue('-90');
+  // フラットは主光源がないので、ライトの向きは変えられない
+  await page.getByTestId('lighting-select').selectOption('flat');
+  await expect(page.getByTestId('light-angle')).toBeDisabled();
+
+  await page.getByTestId('lighting-select').selectOption('sunset');
+  await page.reload();
+  await expect(page.getByTestId('lighting-select')).toHaveValue('sunset');
+  await expect(page.getByTestId('light-angle')).toHaveValue('-90');
+});

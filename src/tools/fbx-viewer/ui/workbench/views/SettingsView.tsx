@@ -3,6 +3,9 @@ import type { ThemePreference } from '../../../../../theme/theme';
 import { formatNumber } from '../../../logic/format';
 import { PRESETS, findPreset } from '../../../logic/inspection/presets';
 import { useViewerStore, type Background } from '../../../store/viewerStore';
+import { LIGHTING, LIGHTING_ORDER, type LightingPreset } from '../../../logic/lighting';
+import type { ShadingMode } from '../../../services/DisplayModeManager';
+import { shadingOptions } from '../shadingOptions';
 import { buildCommands } from '../commands';
 import { KeyHint, PropertyGrid, Section, VsCheckbox, VsSelect } from '../primitives';
 import { vsc } from '../styles';
@@ -42,6 +45,20 @@ export function SettingsView() {
       </Section>
       <Section title="3D ビュー">
         <div className="flex flex-col gap-1.5 px-3 py-1">
+          <VsSelect
+            label="シェーディング"
+            hideLabel={false}
+            value={s.shading}
+            onChange={(v) => s.setView({ shading: v as ShadingMode })}
+            options={shadingOptions()}
+          />
+          <VsSelect
+            label="ライティング"
+            hideLabel={false}
+            value={s.lighting}
+            onChange={(v) => s.setView({ lighting: v as LightingPreset })}
+            options={LIGHTING_ORDER.map((id) => ({ value: id, label: LIGHTING[id].label }))}
+          />
           <VsSelect
             label="背景"
             hideLabel={false}

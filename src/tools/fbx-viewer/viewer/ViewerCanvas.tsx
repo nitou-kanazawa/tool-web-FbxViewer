@@ -5,6 +5,7 @@ import { selectModel } from '../ui/workbench/actions';
 import { AnimationDriver } from './AnimationDriver';
 import { CameraRig } from './CameraRig';
 import { Helpers } from './Helpers';
+import { SceneLights } from './Lighting';
 import { ModelView } from './ModelView';
 
 const BACKGROUND_COLORS: Record<Background, string> = {
@@ -32,9 +33,7 @@ export function ViewerCanvas() {
       onPointerMissed={(e) => e.button === 0 && selectModel()}
     >
       <color attach="background" args={[BACKGROUND_COLORS[background]]} />
-      <hemisphereLight args={['#ffffff', '#64748b', 1.6]} />
-      <directionalLight position={[3, 5, 4]} intensity={2.2} />
-      <directionalLight position={[-4, 2, -3]} intensity={0.8} />
+      <SceneLights />
       {model && <ModelView model={model} />}
       {model && <AnimationDriver model={model} />}
       <Helpers />

@@ -41,6 +41,18 @@ test('FBX ビューア: 各ビュー', async ({ page }) => {
   await page.getByTestId('uv-canvas').waitFor();
   await page.screenshot({ path: 'screenshots/tool-fbx-viewer-uv.png' });
 
+  await page.getByRole('tab', { name: 'エクスプローラー', exact: true }).click();
+  await page.getByRole('tab', { name: /3D ビュー/ }).click();
+  await page.getByRole('button', { name: 'スケルトン', exact: true }).click();
+  await page.getByRole('button', { name: 'モデルの概要に戻る' }).click();
+  await page.getByTestId('shading-select').selectOption('toonOutline');
+  await page.getByTestId('lighting-select').selectOption('outdoor');
+  // 描き直しを待ってから撮る
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: 'screenshots/tool-fbx-viewer-toon.png' });
+  await page.getByTestId('shading-select').selectOption('standard');
+  await page.getByTestId('lighting-select').selectOption('studio');
+
   await page.keyboard.press('Control+Shift+P');
   await page.keyboard.type('表示');
   await page.screenshot({ path: 'screenshots/tool-fbx-viewer-palette.png' });

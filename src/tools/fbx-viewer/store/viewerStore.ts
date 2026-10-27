@@ -23,6 +23,7 @@ import {
   type ModelAnalysis,
 } from '../services/analyzeModel';
 import type { ShadingMode, WireframeMode } from '../services/DisplayModeManager';
+import { DEFAULT_LIGHT_ANGLE, type LightingPreset } from '../logic/lighting';
 import { ModelSession } from '../services/ModelSession';
 
 export type Background = 'dark' | 'gray' | 'light';
@@ -68,6 +69,9 @@ interface ViewState {
   showSkeleton: boolean;
   shading: ShadingMode;
   wireframe: WireframeMode;
+  lighting: LightingPreset;
+  /** 主光源の水平方向の角度（度）。0 で正面、90 で右 */
+  lightAngle: number;
   selectedBoneUuid: string | null;
   cameraResetToken: number;
   bindPoseToken: number;
@@ -177,6 +181,8 @@ export const useViewerStore = create<ViewerState>()(
         showSkeleton: false,
         shading: 'standard',
         wireframe: 'off',
+        lighting: 'studio',
+        lightAngle: DEFAULT_LIGHT_ANGLE,
         selectedBoneUuid: null,
         cameraResetToken: 0,
         bindPoseToken: 0,
@@ -365,6 +371,8 @@ export const useViewerStore = create<ViewerState>()(
         background: s.background,
         showGrid: s.showGrid,
         showAxes: s.showAxes,
+        lighting: s.lighting,
+        lightAngle: s.lightAngle,
         loop: s.loop,
         speed: s.speed,
         rootMotion: s.rootMotion,

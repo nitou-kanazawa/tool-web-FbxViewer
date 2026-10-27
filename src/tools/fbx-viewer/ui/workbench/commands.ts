@@ -1,7 +1,12 @@
 import { PRESETS } from '../../logic/inspection/presets';
 import { inspectionToMarkdown } from '../../logic/report';
 import { findPreset } from '../../logic/inspection/presets';
-import { SHADING_LABELS, type ShadingMode } from '../../services/DisplayModeManager';
+import {
+  SHADING_GROUPS,
+  SHADING_LABELS,
+  type ShadingMode,
+} from '../../services/DisplayModeManager';
+import { LIGHTING, LIGHTING_ORDER } from '../../logic/lighting';
 import { useViewerStore } from '../../store/viewerStore';
 import { useWorkbenchStore } from '../../store/workbenchStore';
 import { setThemePreference } from '../../../../theme/useTheme';
@@ -29,15 +34,7 @@ const wb = () => useWorkbenchStore.getState();
 const hasModel = () => viewer().model !== null;
 const hasClip = () => viewer().activeClip !== null;
 
-const SHADING_ORDER: ShadingMode[] = [
-  'standard',
-  'baseColor',
-  'normalMap',
-  'white',
-  'normals',
-  'checker',
-  'boneWeight',
-];
+const SHADING_ORDER: ShadingMode[] = SHADING_GROUPS.flatMap((g) => g.modes);
 
 export function buildCommands(): Command[] {
   return [
@@ -152,9 +149,15 @@ export function buildCommands(): Command[] {
     ...SHADING_ORDER.map<Command>((mode) => ({
       id: `scene.shading.${mode}`,
       category: '3D ビュー',
-      title: `表示: ${SHADING_LABELS[mode]}`,
+      title: `シェーディング: ${SHADING_LABELS[mode]}`,
       enabled: hasModel,
       run: () => (mode === 'boneWeight' ? toggleWeights() : viewer().setView({ shading: mode })),
+    })),
+    ...LIGHTING_ORDER.map<Command>((id) => ({
+      id: `scene.lighting.${id}`,
+      category: '3D ビュー',
+      title: `ライティング: ${LIGHTING[id].label}`,
+      run: () => viewer().setView({ lighting: id }),
     })),
     {
       id: 'scene.grid',
