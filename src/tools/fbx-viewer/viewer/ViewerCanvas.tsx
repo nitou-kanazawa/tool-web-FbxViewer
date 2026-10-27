@@ -1,15 +1,18 @@
 import { GizmoHelper, GizmoViewport, OrbitControls } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
 import { useViewerStore, type Background } from '../store/viewerStore';
+import { selectModel } from '../ui/workbench/actions';
 import { AnimationDriver } from './AnimationDriver';
 import { CameraRig } from './CameraRig';
 import { Helpers } from './Helpers';
+import { SceneLights } from './Lighting';
 import { ModelView } from './ModelView';
 
 const BACKGROUND_COLORS: Record<Background, string> = {
-  dark: '#0f172a',
-  gray: '#64748b',
-  light: '#f1f5f9',
+  // VS Code のエディタの配色に合わせたニュートラルな灰色
+  dark: '#232323',
+  gray: '#5a5d61',
+  light: '#e8e8e8',
 };
 
 export function ViewerCanvas() {
@@ -27,11 +30,10 @@ export function ViewerCanvas() {
       gl={{ antialias: true, preserveDrawingBuffer: true }}
       aria-label="3D ビュー"
       data-testid="viewer-canvas"
+      onPointerMissed={(e) => e.button === 0 && selectModel()}
     >
       <color attach="background" args={[BACKGROUND_COLORS[background]]} />
-      <hemisphereLight args={['#ffffff', '#64748b', 1.6]} />
-      <directionalLight position={[3, 5, 4]} intensity={2.2} />
-      <directionalLight position={[-4, 2, -3]} intensity={0.8} />
+      <SceneLights />
       {model && <ModelView model={model} />}
       {model && <AnimationDriver model={model} />}
       <Helpers />

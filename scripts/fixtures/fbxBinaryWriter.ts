@@ -5,6 +5,7 @@
  * 出力と完全に同じではないが、three.js の FBXLoader が読める構造を出力する。
  * 形式の参考: https://code.blender.org/2013/08/fbx-binary-file-format-specification/
  */
+import { deflateSync } from 'node:zlib';
 
 export type FbxProp =
   | { t: 'C'; v: boolean }
@@ -45,6 +46,8 @@ export function objectName(name: string, className: string): string {
 }
 
 const MAGIC = 'Kaydara FBX Binary  \u0000';
+/** これより大きい配列（バイト数）は zlib で圧縮する */
+const COMPRESS_THRESHOLD = 128;
 const NULL_RECORD_SIZE = 13;
 const encoder = new TextEncoder();
 
@@ -106,6 +109,20 @@ class ByteWriter {
   }
 }
 
+function arrayBytes(p: Extract<FbxProp, { t: 'i' | 'f' | 'l' | 'd' }>): Uint8Array {
+  const n = p.v.length;
+  const size = p.t === 'i' || p.t === 'f' ? 4 : 8;
+  const out = new Uint8Array(n * size);
+  const view = new DataView(out.buffer);
+  for (let i = 0; i < n; i++) {
+    if (p.t === 'i') view.setInt32(i * 4, p.v[i] as number, true);
+    else if (p.t === 'f') view.setFloat32(i * 4, p.v[i] as number, true);
+    else if (p.t === 'l') view.setBigInt64(i * 8, p.v[i] as bigint, true);
+    else view.setFloat64(i * 8, p.v[i] as number, true);
+  }
+  return out;
+}
+
 function writeProp(w: ByteWriter, p: FbxProp) {
   w.u8(p.t.charCodeAt(0));
   switch (p.t) {
@@ -132,25 +149,17 @@ function writeProp(w: ByteWriter, p: FbxProp) {
       w.bytes(p.v);
       return;
     case 'i':
-    case 'f': {
-      w.u32(p.v.length);
-      w.u32(0); // 非圧縮
-      w.u32(p.v.length * 4);
-      for (let i = 0; i < p.v.length; i++) {
-        if (p.t === 'i') w.i32(p.v[i]);
-        else w.f32(p.v[i]);
-      }
-      return;
-    }
+    case 'f':
     case 'l':
     case 'd': {
+      const raw = arrayBytes(p);
+      // Blender などと同じく、ある程度大きい配列は zlib で圧縮する
+      const compress = raw.length > COMPRESS_THRESHOLD;
+      const body = compress ? new Uint8Array(deflateSync(raw)) : raw;
       w.u32(p.v.length);
-      w.u32(0);
-      w.u32(p.v.length * 8);
-      for (let i = 0; i < p.v.length; i++) {
-        if (p.t === 'l') w.i64(p.v[i] as bigint);
-        else w.f64(p.v[i] as number);
-      }
+      w.u32(compress ? 1 : 0);
+      w.u32(body.length);
+      w.bytes(body);
       return;
     }
   }

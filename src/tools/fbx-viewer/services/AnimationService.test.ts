@@ -10,7 +10,7 @@ describe('AnimationService', () => {
     const model = await loadFbxModel(sampleFile('sample-character.fbx'));
     const rig = rigInfoOf(model.root);
     expect(rig.rootName).toBe('mixamorigHips');
-    expect(rig.rootRest).toBeCloseTo(95);
+    expect(rig.rootRest).toBeCloseTo(92);
 
     const library = new AnimationLibrary(new MemoryAnimationRepository());
     const walk = await library.add(sampleFile('anim-walk.fbx'));
@@ -20,9 +20,9 @@ describe('AnimationService', () => {
     expect(report!.verdict).toBe('ok');
     expect(report!.matchedCount).toBe(7);
     const hips = clip!.tracks.find((t) => t.name === 'mixamorigHips.position')!;
-    // アニメ側は m 単位・腰 1.0m、モデル側は cm 単位・腰 95 → 移動量は 95 倍
-    expect(hips.values[1]).toBeCloseTo(95, 0);
-    expect(hips.values[hips.values.length - 1]).toBeCloseTo(1.4 * 95, 0);
+    // アニメ側は m 単位・腰 1.0m、モデル側は cm 単位・腰 92 → 移動量は 92 倍
+    expect(hips.values[1]).toBeCloseTo(92, 0);
+    expect(hips.values[hips.values.length - 1]).toBeCloseTo(1.4 * 92, 0);
 
     const fixed = prepareClip(walk, 0, rig, false).clip!;
     const fixedHips = fixed.tracks.find((t) => t.name === 'mixamorigHips.position')!;

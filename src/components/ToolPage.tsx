@@ -9,6 +9,15 @@ interface ToolPageProps {
 }
 
 export function ToolPage({ meta, children }: ToolPageProps) {
+  if (meta.layout === 'fullscreen') {
+    // ツール自身がタイトルバーやツール一覧へのリンクを持つ
+    return (
+      <div className="h-screen w-screen overflow-hidden bg-white text-slate-900 dark:bg-[#1e1e1e] dark:text-slate-100">
+        <h1 className="sr-only">{meta.title}</h1>
+        {children}
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <div

@@ -23,10 +23,26 @@ import {
   type ModelAnalysis,
 } from '../services/analyzeModel';
 import type { ShadingMode, WireframeMode } from '../services/DisplayModeManager';
+import { DEFAULT_LIGHT_ANGLE, type LightingPreset } from '../logic/lighting';
 import { ModelSession } from '../services/ModelSession';
 
 export type Background = 'dark' | 'gray' | 'light';
-export type PanelTab = 'overview' | 'textures' | 'uv' | 'rig';
+
+/**
+ * セレクタで「なければ空」を返すときに使う空配列。
+ * `?? []` と書くと毎回別の配列になり、zustand が変化ありとみなして無限に描き直すため。
+ */
+export const NO_MATERIALS: ModelAnalysis['materials'] = [];
+
+/** 出力パネルと通知に出すメッセージ（設計書 §15.2）。 */
+export interface LogMessage {
+  id: number;
+  level: 'error' | 'warning' | 'info';
+  text: string;
+  time: number;
+  /** 通知を閉じたか（出力パネルには残る） */
+  dismissed: boolean;
+}
 
 export interface ClipRef {
   assetId: string;
@@ -35,8 +51,7 @@ export interface ClipRef {
 
 interface ModelState {
   status: 'idle' | 'loading' | 'ready' | 'error';
-  error: string | null;
-  notices: string[];
+  messages: LogMessage[];
   model: LoadedModel | null;
   analysis: ModelAnalysis | null;
   rig: RigInfo | null;
@@ -54,7 +69,9 @@ interface ViewState {
   showSkeleton: boolean;
   shading: ShadingMode;
   wireframe: WireframeMode;
-  tab: PanelTab;
+  lighting: LightingPreset;
+  /** 主光源の水平方向の角度（度）。0 で正面、90 で右 */
+  lightAngle: number;
   selectedBoneUuid: string | null;
   cameraResetToken: number;
   bindPoseToken: number;
@@ -65,7 +82,6 @@ interface AnimationState {
   libraryPersistent: boolean;
   library: AnimationAsset[];
   libraryBusy: boolean;
-  animationError: string | null;
   selectedClip: ClipRef | null;
   activeClip: AnimationClip | null;
   matchReport: MatchReport | null;
@@ -83,7 +99,9 @@ interface Actions {
   setPreset(id: string): void;
   setView(patch: Partial<ViewState>): void;
   resetCamera(): void;
-  dismissNotices(): void;
+  log(level: LogMessage['level'], text: string): void;
+  dismissMessage(id: number): void;
+  clearLog(): void;
   initLibrary(): Promise<void>;
   addAnimations(files: FileLike[]): Promise<void>;
   removeAnimation(id: string): Promise<void>;
@@ -99,6 +117,9 @@ interface Actions {
 export type ViewerState = ModelState & ViewState & AnimationState & Actions;
 
 const session = new ModelSession();
+let nextMessageId = 1;
+/** 出力パネルに残すメッセージの上限 */
+const MAX_MESSAGES = 200;
 let library: AnimationLibrary | null = null;
 
 /** 選べるクリップの一覧（モデル内蔵 → ライブラリの順）。 */
@@ -144,8 +165,7 @@ export const useViewerStore = create<ViewerState>()(
       return {
         // ---- モデル ----
         status: 'idle',
-        error: null,
-        notices: [],
+        messages: [],
         model: null,
         analysis: null,
         rig: null,
@@ -161,7 +181,8 @@ export const useViewerStore = create<ViewerState>()(
         showSkeleton: false,
         shading: 'standard',
         wireframe: 'off',
-        tab: 'overview',
+        lighting: 'studio',
+        lightAngle: DEFAULT_LIGHT_ANGLE,
         selectedBoneUuid: null,
         cameraResetToken: 0,
         bindPoseToken: 0,
@@ -171,7 +192,6 @@ export const useViewerStore = create<ViewerState>()(
         libraryPersistent: false,
         library: [],
         libraryBusy: false,
-        animationError: null,
         selectedClip: null,
         activeClip: null,
         matchReport: null,
@@ -184,7 +204,8 @@ export const useViewerStore = create<ViewerState>()(
         fps: 30,
 
         async openFiles(files) {
-          set({ status: 'loading', error: null, notices: [] });
+          set({ status: 'loading' });
+          get().log('info', `読み込み中: ${files.map((f) => f.name).join(', ')}`);
           try {
             const result = await session.open(files);
             if (!result) return; // 次の読み込みに追い越された
@@ -204,7 +225,6 @@ export const useViewerStore = create<ViewerState>()(
               model,
               analysis,
               rig,
-              notices,
               textures: undefined,
               selectedBoneUuid: null,
               // ボーンの選択はモデルごとなので、ウェイト表示は通常表示に戻す
@@ -213,6 +233,9 @@ export const useViewerStore = create<ViewerState>()(
               selectedClip: keepClip,
               currentTime: 0,
             });
+            get().log('info', `${model.source.fileName} を読み込みました`);
+            for (const n of notices) get().log('warning', n);
+            for (const d of model.diagnostics) get().log('info', `[ローダー] ${d.message}`);
             reinspect();
             rebuildClip();
             model.texturesReady.then(() => {
@@ -222,7 +245,8 @@ export const useViewerStore = create<ViewerState>()(
             });
           } catch (e) {
             // 失敗しても直前のモデルは残す（NF-06）
-            set({ status: get().model ? 'ready' : 'error', error: toErrorMessage(e) });
+            set({ status: get().model ? 'ready' : 'error' });
+            get().log('error', toErrorMessage(e));
           }
         },
 
@@ -239,8 +263,25 @@ export const useViewerStore = create<ViewerState>()(
           set({ cameraResetToken: get().cameraResetToken + 1 });
         },
 
-        dismissNotices() {
-          set({ notices: [], error: null, animationError: null });
+        log(level, text) {
+          const message: LogMessage = {
+            id: nextMessageId++,
+            level,
+            text,
+            time: Date.now(),
+            dismissed: level === 'info',
+          };
+          set({ messages: [...get().messages, message].slice(-MAX_MESSAGES) });
+        },
+
+        dismissMessage(id) {
+          set({
+            messages: get().messages.map((m) => (m.id === id ? { ...m, dismissed: true } : m)),
+          });
+        },
+
+        clearLog() {
+          set({ messages: [] });
         },
 
         async initLibrary() {
@@ -250,17 +291,13 @@ export const useViewerStore = create<ViewerState>()(
             persistent ? new IdbAnimationRepository() : new MemoryAnimationRepository(),
           );
           const { assets, errors } = await library.loadAll();
-          set({
-            libraryReady: true,
-            libraryPersistent: persistent,
-            library: assets,
-            animationError: errors.length ? `読み込めなかったアニメ: ${errors.join(' / ')}` : null,
-          });
+          set({ libraryReady: true, libraryPersistent: persistent, library: assets });
+          if (errors.length) get().log('error', `読み込めなかったアニメ: ${errors.join(' / ')}`);
         },
 
         async addAnimations(files) {
           if (!library) await get().initLibrary();
-          set({ libraryBusy: true, animationError: null });
+          set({ libraryBusy: true });
           const added: AnimationAsset[] = [];
           const errors: string[] = [];
           for (const file of files) {
@@ -274,11 +311,9 @@ export const useViewerStore = create<ViewerState>()(
               errors.push(`${file.name}: ${toErrorMessage(e)}`);
             }
           }
-          set({
-            libraryBusy: false,
-            library: [...get().library, ...added],
-            animationError: errors.length ? errors.join(' / ') : null,
-          });
+          set({ libraryBusy: false, library: [...get().library, ...added] });
+          for (const a of added) get().log('info', `アニメを追加しました: ${a.name}`);
+          for (const err of errors) get().log('error', err);
           // 追加したアニメをすぐ確認できるよう、最初のクリップを選んで再生する
           if (added.length > 0) {
             get().selectClip({ assetId: added[0].id, clipIndex: 0 });
@@ -336,6 +371,8 @@ export const useViewerStore = create<ViewerState>()(
         background: s.background,
         showGrid: s.showGrid,
         showAxes: s.showAxes,
+        lighting: s.lighting,
+        lightAngle: s.lightAngle,
         loop: s.loop,
         speed: s.speed,
         rootMotion: s.rootMotion,

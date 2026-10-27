@@ -7,7 +7,7 @@ export const meta: ToolMeta = {
   description:
     'FBX をドラッグ＆ドロップして、メッシュ・テクスチャ・UV・リグ・アニメーションを確認し、ゲーム用アセットとして検品します。',
   tags: ['3d', 'fbx', 'unity'],
-  layout: 'wide',
+  layout: 'fullscreen',
 };
 
 // three.js 一式はこのツールを開いたときに初めて読み込む（NF-05）
@@ -18,7 +18,10 @@ export default function FbxViewer() {
     <ErrorBoundary>
       <Suspense
         fallback={
-          <p className="rounded-lg border border-slate-200 p-6 text-slate-500 dark:border-slate-800">
+          <p
+            aria-busy="true"
+            className="flex h-screen items-center justify-center text-[13px] text-slate-500"
+          >
             ビューアを読み込んでいます…
           </p>
         }

@@ -33,8 +33,11 @@ export interface MeshInput {
   polygons: number[][];
   /** 面の頂点ごとの UV（polygons と同じ形）。省略すると UV なし */
   uvs?: [number, number][][];
-  /** 法線を書き出すか（既定: true。面法線を計算する） */
-  normals?: boolean;
+  /**
+   * 法線。true（既定）なら面法線（角ばった見た目）、false なら書き出さない、
+   * 配列ならコントロールポイントごとの法線（なめらかな見た目）。
+   */
+  normals?: boolean | Vec3[];
   translation?: Vec3;
   rotation?: Vec3;
   scaling?: Vec3;
@@ -111,9 +114,14 @@ export class FbxSceneBuilder {
     ];
     if (m.normals !== false) {
       const normals: number[] = [];
+      const pointNormals = Array.isArray(m.normals) ? m.normals : null;
       for (const poly of m.polygons) {
-        const n = faceNormal(poly.map((i) => m.positions[i]));
-        for (let k = 0; k < poly.length; k++) normals.push(...n);
+        if (pointNormals) {
+          for (const i of poly) normals.push(...pointNormals[i]);
+        } else {
+          const n = faceNormal(poly.map((i) => m.positions[i]));
+          for (let k = 0; k < poly.length; k++) normals.push(...n);
+        }
       }
       geoChildren.push(
         node(
@@ -201,7 +209,8 @@ export class FbxSceneBuilder {
             [],
             [
               node('P', [S('DiffuseColor'), S('Color'), S(''), S('A'), ...color.map(D)]),
-              node('P', [S('Shininess'), S('double'), S('Number'), S(''), D(10)]),
+              node('P', [S('SpecularColor'), S('Color'), S(''), S('A'), D(0.12), D(0.12), D(0.12)]),
+              node('P', [S('Shininess'), S('double'), S('Number'), S(''), D(12)]),
             ],
           ),
         ],
